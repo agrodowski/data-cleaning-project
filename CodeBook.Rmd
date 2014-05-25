@@ -1,0 +1,98 @@
+CodeBook for Getting and Cleaning Data Project 1 
+========================================================
+This documen describes the variables, the data, and any transformations or work
+performed to clean up the data.
+
+Variables
+-------------
+Quoting from the original feature description: 
+
+The features selected for this database come from the accelerometer and gyroscope 3-axial raw signals tAcc-XYZ and tGyro-XYZ. These time domain signals (prefix 't' to denote time) were captured at a constant rate of 50 Hz. Then they were filtered using a median filter and a 3rd order low pass Butterworth filter with a corner frequency of 20 Hz to remove noise. Similarly, the acceleration signal was then separated into body and gravity acceleration signals (tBodyAcc-XYZ and tGravityAcc-XYZ) using another low pass Butterworth filter with a corner frequency of 0.3 Hz. 
+
+Subsequently, the body linear acceleration and angular velocity were derived in time to obtain Jerk signals (tBodyAccJerk-XYZ and tBodyGyroJerk-XYZ). Also the magnitude of these three-dimensional signals were calculated using the Euclidean norm (tBodyAccMag, tGravityAccMag, tBodyAccJerkMag, tBodyGyroMag, tBodyGyroJerkMag). 
+
+Finally a Fast Fourier Transform (FFT) was applied to some of these signals producing fBodyAcc-XYZ, fBodyAccJerk-XYZ, fBodyGyro-XYZ, fBodyAccJerkMag, fBodyGyroMag, fBodyGyroJerkMag. (Note the 'f' to indicate frequency domain signals). 
+
+These signals were used to estimate variables of the feature vector for each pattern: '-XYZ' is used to denote 3-axial signals in the X, Y and Z directions.
+
+Only the measurements on the mean and standard deviatian for each measurement 
+are in scope of this analsis. 
+
+```{r, feature_extraction, echo=TRUE}
+# determine which features are means and standard deviations
+feature <- read.table("./UCI HAR Dataset/features.txt")
+indx <- feature[grepl("-(mean|std)\\(\\)",feature$V2,feature),]$V1
+# normalise names: lowercase and removal of brackets
+featurenames <- gsub("[()]","",tolower(feature[indx,]$V2))
+```
+
+Intially, the entire set of features is loaded which contains `r nrow(feature)`
+features and all variables having *std* or *mean* in its names are extracted 
+from it, which narrows it down to `r length(indx)` features enumerated below.
+
+Names are normalised by setting it to lower case and removing any bracket
+characters.
+
+The final list of `r length(indx)` originate from the following list of features:
+* tbodyacc (6 variables: mean and std per x,y,z)
+* tgravityacc (6 variables: mean and std per x,y,z)
+* tbodyaccjerk (6 variables: mean and std per x,y,z)
+* tbodygyro (6 variables: mean and std per x,y,z)
+* tbodygyrojerk (6 variables: mean and std per x,y,z)
+* tbodyaccmag (2 variables: mean and std)
+* tgravityaccmag (2 variables: mean and std)
+* tbodyaccjerkmag (2 variables: mean and std)
+* tbodygyromag (2 variables: mean and std)
+* tbodygyrojerkmag (2 variables: mean and std)
+* fbodyacc (6 variables: mean and std per x,y,z)
+* fbodyaccjerk (6 variables: mean and std per x,y,z)
+* fbodygyro (6 variables: mean and std per x,y,z)
+* fbodyaccmag (2 variables: mean and std)
+* fbodybodyaccjerkmag (2 variables: mean and std)
+* fbodybodygyromag (2 variables: mean and std)
+* fbodybodygyrojerkmag (2 variables: mean and std)
+
+Naming convention is ***{normalised original name}-(mean|std)-[xyz]*** for spatial
+features and ***{normalised original name}-(mean|std)*** for non-spatial features.
+
+Transformation
+-----------------------
+
+Once relevant features are determined, they are loaded from two data sets
+and merged together using the following logic.
+```{r}
+readUCIHARDataset <- function(kind, names, cols) {
+  dir <- paste0("./UCI HAR Dataset/",kind)
+  dt <- data.table(read.table(paste0(dir,"/X_",kind,".txt"),colClasses=cols))
+  setnames(dt, names)
+  dt[, activity := read.table(paste0(dir,"/y_",kind,".txt"))]
+  dt[, subject := read.table(paste0(dir,"/subject_",kind,".txt"))]
+}
+
+# import only relevant data from test and train datasets
+cols <- rep("NULL",length(feature$V1))
+cols[indx] <- "numeric"
+
+# read only relevant variables from test and train datasets
+testdt <- readUCIHARDataset("test",featurenames,cols)
+traindt <- readUCIHARDataset("train",featurenames,cols)
+
+# merge test with train
+dt <- rbindlist(list(testdt,traindt))
+```
+
+Before the final computation we are replacing activity identifiers with 
+labels read from a separate dictionary file.
+```{r}
+# replace activity number with label
+activityname <- read.table("./UCI HAR Dataset/activity_labels.txt")
+dt[, activity := as.factor(activityname[activity,]$V2) ]
+```
+
+Finally, a tidy data set is a projection of our data set through subject 
+and activity aggregated by a mean function.
+```{r}
+# compute tidy dataset: reduce: mean(.SD) per subject per activity
+dtt <- dt[,lapply(.SD,mean),by=list(subject,activity)]
+write.table(dtt,"tidy.txt",row.names=FALSE)
+```
