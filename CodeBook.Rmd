@@ -1,13 +1,12 @@
-CodeBook for Getting and Cleaning Data Project 1 
+CodeBook for Getting and Cleaning Data Project
 ========================================================
 This document describes the variables, the data, and any transformations or work
 performed to clean up the data.
 
 Variables
 -------------
-Quoting from the original feature description: 
-
-The features selected for this database come from the accelerometer and gyroscope 3-axial raw signals tAcc-XYZ and tGyro-XYZ. These time domain signals (prefix 't' to denote time) were captured at a constant rate of 50 Hz. Then they were filtered using a median filter and a 3rd order low pass Butterworth filter with a corner frequency of 20 Hz to remove noise. Similarly, the acceleration signal was then separated into body and gravity acceleration signals (tBodyAcc-XYZ and tGravityAcc-XYZ) using another low pass Butterworth filter with a corner frequency of 0.3 Hz. 
+Quoting from the original feature description:
+> The features selected for this database come from the accelerometer and gyroscope 3-axial raw signals tAcc-XYZ and tGyro-XYZ. These time domain signals (prefix 't' to denote time) were captured at a constant rate of 50 Hz. Then they were filtered using a median filter and a 3rd order low pass Butterworth filter with a corner frequency of 20 Hz to remove noise. Similarly, the acceleration signal was then separated into body and gravity acceleration signals (tBodyAcc-XYZ and tGravityAcc-XYZ) using another low pass Butterworth filter with a corner frequency of 0.3 Hz. 
 
 Subsequently, the body linear acceleration and angular velocity were derived in time to obtain Jerk signals (tBodyAccJerk-XYZ and tBodyGyroJerk-XYZ). Also the magnitude of these three-dimensional signals were calculated using the Euclidean norm (tBodyAccMag, tGravityAccMag, tBodyAccJerkMag, tBodyGyroMag, tBodyGyroJerkMag). 
 
@@ -15,7 +14,7 @@ Finally a Fast Fourier Transform (FFT) was applied to some of these signals prod
 
 These signals were used to estimate variables of the feature vector for each pattern: '-XYZ' is used to denote the 3-axial signals in the X, Y and Z directions.
 
-Only the measurements on the mean and the standard deviation for each measurement are in scope of this analysis. 
+Only the measurements on the mean and the standard deviation for each measurement are in scope of this analysis, a simple regular expression identifies the important features.
 ```{r, feature_extraction, echo=TRUE}
 # determine which features are means and standard deviations
 feature <- read.table("./UCI HAR Dataset/features.txt")
@@ -55,9 +54,8 @@ features and ***{normalised original name}-(mean|std)*** for non-spatial feature
 
 Transformation
 -----------------------
-
-Once relevant features are determined, they are loaded from two data sets
-and merged together using the following logic.
+The following function reads the selected columns
+from the corresponding UCI HAR Dataset files into a single data frame.
 ```{r}
 readUCIHARDataset <- function(kind, names, cols) {
   dir <- paste0("./UCI HAR Dataset/",kind)
@@ -66,11 +64,19 @@ readUCIHARDataset <- function(kind, names, cols) {
   dt[, activity := read.table(paste0(dir,"/y_",kind,".txt"))]
   dt[, subject := read.table(paste0(dir,"/subject_",kind,".txt"))]
 }
+```
 
+We are only interested in features selected before, so we can ignore anything else 
+and remove it from our data frame.
+```{r}
 # import only relevant data from test and train datasets
 cols <- rep("NULL",length(feature$V1))
 cols[indx] <- "numeric"
+```
 
+Once relevant features are determined, they are loaded from the two data sets
+and merged together.
+```{r}
 # read only relevant variables from test and train datasets
 testdt <- readUCIHARDataset("test",featurenames,cols)
 traindt <- readUCIHARDataset("train",featurenames,cols)
@@ -87,8 +93,8 @@ activityname <- read.table("./UCI HAR Dataset/activity_labels.txt")
 dt[, activity := as.factor(activityname[activity,]$V2) ]
 ```
 
-Finally, a tidy data set is a projection of our data set through subject 
-and activity aggregated by a mean function.
+Finally, the tidy data set is a projection of our data set through the subject 
+and activity aggregated by the mean function.
 ```{r}
 # compute tidy dataset: reduce: mean(.SD) per subject per activity
 dtt <- dt[,lapply(.SD,mean),by=list(subject,activity)]
