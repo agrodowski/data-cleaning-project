@@ -22,6 +22,8 @@ This file contains the R code to clean UCI HAR Dataset which does the following 
 
 The order of the above steps has been changed slightly by performing the extraction before merging for optimisation purposes. The variables have been normalised (lowercased and stripped of brackets) but no further renaming has been made to preserve its original meaning.
 
+Note : Please note that all variables weighted average of the frequency components to obtain a mean frequency denoted as meanFreq() have been explicitely considered OUT OF SCOPE of the tidy data set because they are not the mean of the ***direct measurement that took place*** (denoted as mean()). For the same reason, additional vectors obtained by averaging the signals in a signal window sample used on the angle variable denoted as angle(...) are also explicitely considered OUT OF SCOPE.
+
 ### CodeBook.Rmd
 This file contains a description of variables and the transformation made. It is a R markup document with the inline R code, therefore, some values may only be obtained by running it.
 
