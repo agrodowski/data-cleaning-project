@@ -1,6 +1,6 @@
 CodeBook for Getting and Cleaning Data Project 1 
 ========================================================
-This documen describes the variables, the data, and any transformations or work
+This document describes the variables, the data, and any transformations or work
 performed to clean up the data.
 
 Variables
